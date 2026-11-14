@@ -1,0 +1,64 @@
+<section class="view active">
+  <div class="auth card wide">
+    <h1>Almost there!</h1>
+    <p class="muted">Your location tells neighbors where an item is and how far apart you are. Only your city and area are shown publicly; your street address is shared only after a request is accepted.</p>
+    <form (ngSubmit)="submit()" novalidate>
+      <div class="two-f">
+        <div class="field">
+          <label for="fn">First name</label>
+          <input id="fn" name="fn" autocomplete="given-name" [(ngModel)]="model.fn" [attr.aria-invalid]="errors().fn ? true : null" />
+          @if (errors().fn) { <p class="error" role="alert">Enter your first name.</p> }
+        </div>
+        <div class="field">
+          <label for="ln">Last name</label>
+          <input id="ln" name="ln" autocomplete="family-name" [(ngModel)]="model.ln" [attr.aria-invalid]="errors().ln ? true : null" />
+          @if (errors().ln) { <p class="error" role="alert">Enter your last name.</p> }
+        </div>
+      </div>
+      <div class="field">
+        <label for="country">Country</label>
+        <select id="country" name="country" autocomplete="country-name" [(ngModel)]="model.country">
+          @for (c of countries; track c) { <option [value]="c">{{ c }}</option> }
+        </select>
+      </div>
+      <div class="field">
+        <label for="phone">Mobile phone</label>
+        <input id="phone" name="phone" type="tel" autocomplete="tel" placeholder="+216 …" [(ngModel)]="model.phone" [attr.aria-invalid]="errors().phone ? true : null" />
+        @if (errors().phone) { <p class="error" role="alert">Enter your mobile number.</p> }
+      </div>
+      <div class="field">
+        <label for="street">Street address</label>
+        <input id="street" name="street" autocomplete="address-line1" [(ngModel)]="model.street" [attr.aria-invalid]="errors().street ? true : null" />
+        @if (errors().street) { <p class="error" role="alert">Enter your street address.</p> }
+      </div>
+      <div class="field">
+        <label for="line2">Address line 2 (optional)</label>
+        <input id="line2" name="line2" autocomplete="address-line2" [(ngModel)]="model.line2" />
+      </div>
+      <div class="field">
+        <label for="area">Area / neighborhood</label>
+        <input id="area" name="area" placeholder="e.g. Lac 2" [(ngModel)]="model.area" />
+      </div>
+      <div class="three-f">
+        <div class="field">
+          <label for="city">City</label>
+          <input id="city" name="city" list="cityList" autocomplete="address-level2" [(ngModel)]="model.city" [attr.aria-invalid]="errors().city ? true : null" />
+          <datalist id="cityList">@for (c of cityNames; track c) { <option [value]="c"></option> }</datalist>
+          @if (errors().city) { <p class="error" role="alert">Enter your city.</p> }
+        </div>
+        <div class="field">
+          <label for="state">Governorate / State</label>
+          <input id="state" name="state" autocomplete="address-level1" [(ngModel)]="model.state" />
+        </div>
+        <div class="field">
+          <label for="zip">ZIP code</label>
+          <input id="zip" name="zip" inputmode="numeric" autocomplete="postal-code" [(ngModel)]="model.zip" />
+        </div>
+      </div>
+      <button type="button" class="btn btn-outline block" (click)="locate()">Use my current location (optional)</button>
+      <p class="muted small" id="geoStatus" aria-live="polite">{{ geoStatus() }}</p>
+      @if (serverError()) { <p class="error" role="alert">{{ serverError() }}</p> }
+      <button class="btn btn-primary block" type="submit" [disabled]="busy()">{{ busy() ? 'Saving…' : 'Next' }}</button>
+    </form>
+  </div>
+</section>

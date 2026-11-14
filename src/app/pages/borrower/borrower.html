@@ -1,0 +1,73 @@
+<section class="view active" id="borrower">
+  <div class="page-head"><div><h1>Find something to borrow</h1><p class="muted">Items from neighbors near you.</p></div></div>
+
+  <div class="filters">
+    <div class="field">
+      <label for="fcat">Category</label>
+      <select id="fcat" [value]="store.category()" (change)="store.category.set($any($event.target).value)">
+        <option value="">All</option>
+        @for (c of categories; track c) { <option [value]="c">{{ c }}</option> }
+      </select>
+    </div>
+    <div class="field">
+      <label for="ffree">Price</label>
+      <select id="ffree" [value]="store.freeOnly()" (change)="store.freeOnly.set($any($event.target).value)">
+        <option value="">Any</option>
+        <option value="free">Free to borrow</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="grid-items">
+    @for (it of store.filtered(); track it.id) {
+      @if (it.ownerId !== store.user()?.id) {
+        <app-item-card [item]="it">
+          @if (store.requested().has(it.id)) {
+            <button type="button" class="btn btn-small block" disabled>Request sent</button>
+          } @else {
+            <button type="button" class="btn btn-small block" (click)="request(it)">View details &amp; request</button>
+          }
+        </app-item-card>
+      }
+    } @empty {
+      <p class="muted">No items match your search.</p>
+    }
+  </div>
+
+  <h2 class="section">My requests</h2>
+  @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
+  @if (!store.loggedIn()) {
+    <p class="muted">Log in to send requests and follow them here.</p>
+  } @else {
+    <ul class="list">
+      @for (r of store.outgoing(); track r.id) {
+        <li>
+          <div>
+            <strong>{{ r.item.name }}</strong> from {{ r.lender.name }}<br />
+            <span class="muted small">{{ info(r) }}</span>
+            @if (r.address; as a) {
+              <br /><span class="small">Pick-up address: <strong>{{ a.street }}, {{ a.area ? a.area + ', ' : '' }}{{ a.city }}</strong></span>
+            }
+          </div>
+          <div class="row">
+            <span [class]="'badge ' + badge[r.status]">{{ label[r.status] }}</span>
+            @if (r.status === 'accepted') {
+              <button type="button" class="btn btn-small" (click)="markReturned(r)">Mark as returned</button>
+            } @else if (r.status === 'returned') {
+              @if (r.rated) {
+                <span class="muted small">You rated {{ r.rated }}/10</span>
+              } @else {
+                <button type="button" class="btn btn-small" (click)="rate(r)">Rate lender</button>
+              }
+            }
+          </div>
+        </li>
+      } @empty {
+        <li class="muted">You have not requested anything yet.</li>
+      }
+    </ul>
+  }
+</section>
+
+<app-request-dialog />
+<app-rate-dialog />

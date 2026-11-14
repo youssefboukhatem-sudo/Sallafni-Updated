@@ -1,0 +1,42 @@
+<dialog #dlg aria-labelledby="reqTitle">
+  <form (submit)="submit($event)" novalidate>
+    @if (item(); as it) {
+      <h2 id="reqTitle">{{ it.n }}</h2>
+      <div class="info">
+        @if (it.img) { <img class="info-img" [src]="it.img" [alt]="it.n" (error)="$any($event.target).hidden = true" /> }
+        <p>{{ price(it.p) }} · Condition: <strong>{{ it.cond }}</strong></p>
+        <p>
+          Lender: <strong>{{ it.owner.name }}</strong>
+          @if (score(); as s) {
+            <span class="score">★ {{ s }}/10</span> <span class="muted small">({{ it.owner.n }} ratings)</span>
+          }
+        </p>
+        <p>Location: <strong>{{ it.owner.area ? it.owner.area + ', ' : '' }}{{ it.owner.city }}</strong></p>
+        @if (distance(); as d) {
+          <p>Distance: <strong>≈ {{ rounded(d) }} km</strong> from you <span class="muted small">(straight line)</span></p>
+        } @else {
+          <p class="muted small">Add your city in your <a routerLink="/profile" (click)="close()">profile</a> to see the distance.</p>
+        }
+        @if (mapUrl()) { <p><a [href]="mapUrl()" target="_blank" rel="noopener">Open the area in a map</a></p> }
+        <p class="muted small">The exact street address is shared once the lender accepts your request.</p>
+      </div>
+    }
+    <div class="field">
+      <label for="from">Pick-up date</label>
+      <input id="from" type="date" required [min]="today" [value]="from()" (input)="from.set($any($event.target).value)" />
+    </div>
+    <div class="field">
+      <label for="to">Return date</label>
+      <input id="to" type="date" required [min]="from() || today" [value]="to()" (input)="to.set($any($event.target).value)" />
+    </div>
+    <p class="muted small" aria-live="polite">{{ duration() }}</p>
+    @if (showError()) {
+      <p class="error" role="alert">Choose a pick-up date from today, and a return date on or after it.</p>
+    }
+    @if (serverError()) { <p class="error" role="alert">{{ serverError() }}</p> }
+    <div class="row end">
+      <button type="button" class="btn btn-small btn-outline" (click)="close()">Cancel</button>
+      <button type="submit" class="btn btn-primary" [disabled]="busy()">{{ busy() ? 'Sending…' : 'Send request' }}</button>
+    </div>
+  </form>
+</dialog>

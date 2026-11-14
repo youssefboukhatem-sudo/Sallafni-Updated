@@ -1,0 +1,40 @@
+<section class="view active">
+  <div class="hero">
+    <h1>Why buy it when you can borrow it?</h1>
+    <p>Sallafni lets you lend, borrow and share useful things with people near you</p>
+    <a class="btn btn-primary" routerLink="/login">Join your neighborhood</a>
+  </div>
+
+  <div class="panel">
+    <h2 class="center">Frequently shared products</h2>
+    <div class="chips" role="group" aria-label="Categories">
+      @for (c of chips; track c) {
+        <button type="button" class="chip" (click)="pickChip(c)">{{ c }}</button>
+      }
+    </div>
+    <div class="grid-items">
+      @for (it of featured(); track it.id) { <app-item-card [item]="it" /> }
+    </div>
+    <p class="center"><a class="link" routerLink="/borrower">More</a></p>
+  </div>
+
+  <div class="panel">
+    <h2 class="center">How does Sallafni work?</h2>
+    <div class="tabs" role="tablist">
+      <button type="button" role="tab" [attr.aria-selected]="tab() === 'borrow'" aria-controls="steps" (click)="tab.set('borrow')">Borrow</button>
+      <button type="button" role="tab" [attr.aria-selected]="tab() === 'lend'" aria-controls="steps" (click)="tab.set('lend')">Lend</button>
+    </div>
+    <div class="grid-4" id="steps" role="tabpanel">
+      @for (s of steps(); track s[0]; let i = $index) {
+        <div [class]="'step s' + i">
+          <div class="art" aria-hidden="true"></div>
+          <h3>{{ s[0] }}</h3>
+          <p class="muted small">{{ s[1] }}</p>
+        </div>
+      }
+    </div>
+    <p class="center">
+      <a class="btn btn-primary" routerLink="/login">{{ tab() === 'lend' ? 'Start lending' : 'Start borrowing' }}</a>
+    </p>
+  </div>
+</section>

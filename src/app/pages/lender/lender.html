@@ -1,0 +1,107 @@
+<section class="view active">
+  <div class="page-head"><div><h1>Lender dashboard</h1><p class="muted">Manage what you share with neighbors.</p></div></div>
+
+  <div class="grid-3">
+    <div class="card stat"><p class="muted">Items listed</p><p class="big">{{ store.stats().listed }}</p></div>
+    <div class="card stat"><p class="muted">Currently lent out</p><p class="big">{{ store.stats().lentOut }}</p></div>
+    <div class="card stat"><p class="muted">Earned this month</p><p class="big">€{{ store.stats().earned }}</p></div>
+  </div>
+
+  @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
+
+  <h2 class="section">Requests from neighbors</h2>
+  <ul class="list">
+    @for (r of store.incoming(); track r.id) {
+      @if (r.status !== 'returned') {
+        <li>
+          <div>
+            <strong>{{ r.borrower.name }}</strong>
+            @if (store.scoreText(r.borrower); as s) { <span class="score">★ {{ s }}</span> }
+            wants to borrow <strong>{{ r.item.name }}</strong><br />
+            <span class="muted small">{{ range(r.from, r.to) }}@if (r.note) { · "{{ r.note }}" }</span>
+          </div>
+          <div class="row">
+            @switch (r.status) {
+              @case ('accepted') { <span class="badge b-ok">Accepted</span> }
+              @case ('declined') { <span class="badge b-done">Declined</span> }
+              @default {
+                <button type="button" class="btn btn-small" (click)="answer(r, true)">Accept</button>
+                <button type="button" class="btn btn-small btn-outline" (click)="answer(r, false)">Decline</button>
+              }
+            }
+          </div>
+        </li>
+      }
+    } @empty {
+      <li class="muted">No requests yet.</li>
+    }
+  </ul>
+
+  <h2 class="section">Loans</h2>
+  <ul class="list">
+    @for (l of store.loans(); track l.id) {
+      <li>
+        <div>
+          <strong>{{ l.item.name }}</strong> · borrowed by {{ l.borrower.name }}
+          @if (store.scoreText(l.borrower); as s) { <span class="score">★ {{ s }}</span> }<br />
+          <span class="muted small">{{ loanInfo(l) }}</span>
+        </div>
+        <div class="row">
+          <span [class]="'badge ' + badge[l.status]">{{ l.status === 'accepted' ? 'Active' : 'Returned' }}</span>
+          @if (l.status === 'accepted') {
+            <button type="button" class="btn btn-small" (click)="returned(l)">Mark as returned</button>
+          } @else if (l.rated) {
+            <span class="muted small">You rated {{ l.rated }}/10</span>
+          } @else {
+            <button type="button" class="btn btn-small" (click)="rate(l)">Rate borrower</button>
+          }
+        </div>
+      </li>
+    } @empty {
+      <li class="muted">No loans yet.</li>
+    }
+  </ul>
+
+  <div class="two-col">
+    <div>
+      <h2 class="section">My items</h2>
+      <div class="grid-items small-grid">
+        @for (it of store.mine(); track it.id) { <app-item-card [item]="it" /> }
+      </div>
+    </div>
+    <div class="card">
+      <h2>Add an item</h2>
+      <form (ngSubmit)="addItem()" ngNativeValidate>
+        <div class="field">
+          <label for="name">Item name</label>
+          <input id="name" name="name" required placeholder="e.g. Ladder" [(ngModel)]="form.name" />
+        </div>
+        <div class="field">
+          <label for="cat">Category</label>
+          <select id="cat" name="cat" [(ngModel)]="form.cat">
+            @for (c of categories; track c) { <option [value]="c">{{ c }}</option> }
+          </select>
+        </div>
+        <div class="field">
+          <label for="cond">Condition</label>
+          <select id="cond" name="cond" [(ngModel)]="form.cond">
+            @for (c of conditions; track c) { <option [value]="c">{{ c }}</option> }
+          </select>
+        </div>
+        <div class="field">
+          <label for="price">Price per day (0 = free)</label>
+          <input id="price" name="price" type="number" min="0" [(ngModel)]="form.price" />
+        </div>
+        <div class="field">
+          <label for="photo">Photo</label>
+          <input #photo id="photo" name="photo" type="file" accept="image/*" (change)="onPhoto($event)" />
+          @if (photoUrl()) { <img class="preview" [src]="photoUrl()" alt="Preview of the selected photo" /> }
+          @if (photoError()) { <p class="error" role="alert">Please choose an image file under 5 MB.</p> }
+        </div>
+        <button class="btn btn-primary block" type="submit" [disabled]="busy()">{{ busy() ? 'Adding…' : 'Add item' }}</button>
+      </form>
+    </div>
+  </div>
+</section>
+
+<app-rate-dialog />

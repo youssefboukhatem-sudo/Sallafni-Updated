@@ -1,0 +1,34 @@
+<section class="view active">
+  <div class="auth card">
+    <h1>{{ mode() === 'login' ? 'Welcome to Sallafni' : 'Create your account' }}</h1>
+    <p class="muted">
+      {{ mode() === 'login' ? 'Log in first, then choose if you want to borrow or lend.' : 'Join your neighborhood in a minute.' }}
+    </p>
+    <form (submit)="submit($event)" novalidate>
+      <div class="field">
+        <label for="email">Email</label>
+        <input id="email" type="email" autocomplete="email" required [value]="email()" (input)="email.set($any($event.target).value)" />
+        @if (emailError()) { <p class="error" role="alert">Enter a valid email address.</p> }
+      </div>
+      <div class="field">
+        <label for="pw">Password</label>
+        <div class="pw-wrap">
+          <input id="pw" [type]="showPassword() ? 'text' : 'password'" [autocomplete]="mode() === 'login' ? 'current-password' : 'new-password'" required [value]="password()" (input)="password.set($any($event.target).value)" />
+          <button type="button" class="link" [attr.aria-label]="showPassword() ? 'Hide password' : 'Show password'" (click)="showPassword.set(!showPassword())">
+            {{ showPassword() ? 'Hide' : 'Show' }}
+          </button>
+        </div>
+        @if (passwordError()) { <p class="error" role="alert">Password must be at least 8 characters.</p> }
+      </div>
+      @if (serverError()) { <p class="error" role="alert">{{ serverError() }}</p> }
+      <button class="btn btn-primary block" type="submit" [disabled]="busy()">
+        {{ busy() ? 'Please wait…' : mode() === 'login' ? 'Log in' : 'Create account' }}
+      </button>
+    </form>
+    <p class="muted small center">
+      @if (mode() === 'login') { New here? <a href="#" (click)="toggleMode($event)">Create an account</a> }
+      @else { Already registered? <a href="#" (click)="toggleMode($event)">Log in</a> }
+    </p>
+    <p class="muted small center">Demo account: <strong>demo&#64;sallafni.tn</strong> / <strong>password123</strong></p>
+  </div>
+</section>
