@@ -3,6 +3,7 @@ import { ApiStatus, IncomingRequest, OutgoingRequest } from './models';
 const d = (s: string) => new Date(s.slice(0, 10) + 'T00:00:00');
 export const fmtShort = (s: string) => d(s).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 export const fmtDay = (s: string) => d(s).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+export const fmtMonth = (s: string) => d(s).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
 export const fmtRange = (a: string, b: string) => (a === b ? fmtDay(a) : `${fmtDay(a)} – ${fmtDay(b)}`);
 
 export const STATUS_LABEL: Record<ApiStatus, string> = {

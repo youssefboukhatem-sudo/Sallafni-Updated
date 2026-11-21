@@ -1,28 +1,15 @@
 const router = require('express').Router();
-const multer = require('multer');
-const path = require('path');
 const fs = require('fs');
-const crypto = require('crypto');
 const db = require('../db');
 const { requireAuth } = require('../auth');
-const { UPLOAD_DIR } = require('../config');
+const { imageUpload, removeUpload } = require('../upload');
 const S = require('../serialize');
 
-fs.mkdirSync(UPLOAD_DIR, { recursive: true });
-
-const EXT = { 'image/jpeg': '.jpg', 'image/png': '.png', 'image/webp': '.webp', 'image/gif': '.gif' };
-const upload = multer({
-  storage: multer.diskStorage({
-    destination: UPLOAD_DIR,
-    filename: (_req, file, cb) => cb(null, crypto.randomBytes(12).toString('hex') + EXT[file.mimetype]),
-  }),
-  limits: { fileSize: 5 * 1024 * 1024 },
-  fileFilter: (_req, file, cb) => cb(EXT[file.mimetype] ? null : new Error('Please choose a JPG, PNG, WebP or GIF image.'), Boolean(EXT[file.mimetype])),
-});
+const upload = imageUpload(5);
 
 const SELECT = `
   SELECT i.*, u.email o_email, u.first_name o_first_name, u.city o_city, u.area o_area,
-         u.lat o_lat, u.lng o_lng, u.rating_sum o_sum, u.rating_count o_count
+         u.lat o_lat, u.lng o_lng, u.avatar o_avatar, u.rating_sum o_sum, u.rating_count o_count
   FROM items i JOIN users u ON u.id = i.owner_id`;
 
 const CATEGORIES = ['Tools', 'Outdoor', 'Bikes', 'Electronics', 'Party gear'];
@@ -83,7 +70,7 @@ router.delete('/:id(\\d+)', requireAuth, (req, res) => {
     return res.status(409).json({ error: 'This item is currently on loan.' });
   }
   db.prepare('DELETE FROM items WHERE id = ?').run(row.id);
-  if (row.image) fs.unlink(path.join(UPLOAD_DIR, path.basename(row.image)), () => {});
+  removeUpload(row.image);
   res.status(204).end();
 });
 

@@ -1,5 +1,5 @@
 import { Component, inject, signal } from '@angular/core';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { errorMessage } from '../../core/format';
 import { Store } from '../../core/store';
 
@@ -8,7 +8,10 @@ export class Login {
   private readonly router = inject(Router);
   private readonly store = inject(Store);
 
-  protected readonly mode = signal<'login' | 'register'>('login');
+  // "Join your neighborhood" links here with ?mode=register to open the sign-up form directly.
+  protected readonly mode = signal<'login' | 'register'>(
+    inject(ActivatedRoute).snapshot.queryParamMap.get('mode') === 'register' ? 'register' : 'login',
+  );
   protected readonly email = signal('');
   protected readonly password = signal('');
   protected readonly showPassword = signal(false);
@@ -37,7 +40,7 @@ export class Login {
       const user = this.mode() === 'login'
         ? await this.store.login(this.email().trim(), this.password())
         : await this.store.register(this.email().trim(), this.password());
-      this.router.navigateByUrl(user.complete ? '/choose' : '/profile');
+      this.router.navigateByUrl(user.complete ? '/choose' : '/almost-there');
     } catch (err) {
       this.serverError.set(errorMessage(err));
     } finally {

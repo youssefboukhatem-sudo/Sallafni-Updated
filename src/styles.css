@@ -99,8 +99,7 @@ input:focus,select:focus{border-color:var(--purple)}
 .list li:last-child{border:0}
 .row{display:flex;gap:8px}
 .two-col{display:grid;grid-template-columns:1.4fr 1fr;gap:20px;align-items:start;padding-bottom:32px}
-.filters{display:grid;grid-template-columns:repeat(2,minmax(0,220px));gap:14px;margin-bottom:6px}
-.badge{display:inline-block;padding:3px 12px;border-radius:99px;font:800 .8rem var(--font)}
+.filters{display:grid;grid-template-columns:minmax(0,220px) minmax(0,340px);gap:14px 28px;margin-bottom:6px}.badge{display:inline-block;padding:3px 12px;border-radius:99px;font:800 .8rem var(--font)}
 .b-ok{background:var(--ok-bg);color:var(--ok)} .b-wait{background:var(--wait-bg);color:var(--wait)} .b-done{background:#e5e8ec;color:#3c4452}
 #borrower .list{margin-bottom:32px}
 .foot{text-align:center;color:var(--muted);font-size:.85rem;padding:20px}
@@ -145,3 +144,52 @@ dialog{max-height:92vh;overflow:auto}
 .nums input:focus-visible+span{outline:3px solid #1d4ed8;outline-offset:2px}
 .list .row{align-items:center;flex-wrap:wrap}
 @media (max-width:520px){.two-f,.three-f{grid-template-columns:1fr}.auth{margin:16px 12px}}
+
+/* ---- Social profile, account actions ---- */
+textarea{width:100%;padding:10px 12px;border:1.5px solid #8f9aa8;border-radius:8px;font:1rem var(--font);background:#fff;color:var(--text);resize:vertical}
+textarea:focus{border-color:var(--purple)} textarea[aria-invalid=true]{border-color:var(--err)}
+.right{text-align:right}
+.btn-danger{background:var(--err);color:#fff} .btn-danger:hover{background:#8f1c13}
+.av{overflow:hidden} .av img{width:100%;height:100%;object-fit:cover}
+.owner-link{color:inherit;text-decoration:none;font-weight:600} .owner-link:hover{text-decoration:underline}
+.view>.profile-card,.view>.profile-section{margin-left:20px;margin-right:20px}
+.profile-card{padding:0;overflow:hidden;margin-top:24px;margin-bottom:16px}
+.cover{height:120px;background:linear-gradient(135deg,var(--green) 0%,#33496b 60%,var(--gold) 140%)}
+.profile-head{display:flex;justify-content:space-between;align-items:flex-end;padding:0 24px;margin-top:-52px}
+.avatar-lg{width:104px;height:104px;border-radius:50%;border:4px solid #fff;background:var(--lav);color:var(--purple-d);display:grid;place-items:center;font:800 2.4rem var(--font);overflow:hidden;flex:none}
+.avatar-lg img{width:100%;height:100%;object-fit:cover}
+.profile-body{padding:14px 24px 24px;display:block}
+.profile-body h1{font-size:1.9rem;margin-bottom:2px}
+.bio{margin:12px 0;max-width:60ch;white-space:pre-line}
+.stats{list-style:none;padding:0;display:flex;gap:28px;margin-top:14px}
+.stats li{display:flex;flex-direction:column} .stats strong{font-size:1.2rem} .stats span{font-size:.85rem;color:var(--muted)}
+.profile-section{margin-bottom:16px}
+.view>.profile-section:not(.card){margin-top:24px}
+.profile-section .row{margin-top:12px}
+.facts{display:grid;grid-template-columns:repeat(2,1fr);gap:12px 24px;margin:14px 0}
+.facts dt{font-size:.8rem;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.04em} .facts dd{margin:0;font-weight:600}
+.danger-zone{margin-top:22px;padding-top:18px;border-top:1px solid var(--border)}
+.danger-zone h3{color:var(--err);margin-bottom:4px} .danger-zone .btn{margin-top:12px}
+.row:has(#avatarFile:focus-visible) label.btn{outline:3px solid #1d4ed8;outline-offset:2px}
+/* header: avatar next to "Profile", and a Log out button that is actually visible on the dark bar */
+.topbar nav .nav-avatar{width:28px;height:28px;border-radius:50%;object-fit:cover;margin-right:8px;background:var(--lav)}
+.topbar nav .nav-initial{width:28px;height:28px;border-radius:50%;background:var(--lav);color:var(--purple-d);display:inline-grid;place-items:center;font-weight:800;font-size:.85rem;margin-right:8px}
+.topbar nav .navbtn{background:none;border:0;color:#fff;font:700 1rem var(--font);padding:0 14px;min-height:44px;border-radius:99px;cursor:pointer}
+.topbar nav .navbtn:hover{background:rgba(255,255,255,.2)}
+@media (max-width:520px){.facts{grid-template-columns:1fr}.profile-head,.profile-body{padding-left:16px;padding-right:16px}}
+/* ---- Two-thumb price slider (floor + cap) ---- */
+.range{position:relative;height:44px;--lo:0%;--hi:100%}
+.range-track,.range-fill{position:absolute;top:50%;height:6px;margin-top:-3px;border-radius:99px}
+.range-track{left:0;right:0;background:var(--border)}
+.range-fill{left:var(--lo);right:calc(100% - var(--hi));background:var(--purple)}
+.range input[type=range]{position:absolute;left:0;top:0;width:100%;height:44px;min-height:0;margin:0;padding:0;border:0;background:none;
+  -webkit-appearance:none;appearance:none;pointer-events:none}
+.range input[type=range]::-webkit-slider-runnable-track{background:none;height:44px}
+.range input[type=range]::-moz-range-track{background:none}
+.range input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;pointer-events:auto;cursor:grab;width:24px;height:24px;margin-top:10px;border-radius:50%;background:#fff;border:3px solid var(--purple);box-shadow:0 1px 3px rgba(0,0,0,.25)}
+.range input[type=range]::-moz-range-thumb{pointer-events:auto;cursor:grab;width:18px;height:18px;border-radius:50%;background:#fff;border:3px solid var(--purple);box-shadow:0 1px 3px rgba(0,0,0,.25)}
+.range input[type=range]:focus-visible{outline:none}
+.range input[type=range]:focus-visible::-webkit-slider-thumb{outline:3px solid #1d4ed8;outline-offset:2px}
+.range input[type=range]:focus-visible::-moz-range-thumb{outline:3px solid #1d4ed8;outline-offset:2px}
+.range-out{margin:0;display:flex;align-items:center;gap:10px;font-size:.92rem}
+.range-out .link{min-height:32px;font-size:.85rem}

@@ -11,6 +11,7 @@ export interface Owner {
   lng: number | null;
   score: number | null;
   n: number;
+  avatar: string | null;
 }
 
 export interface Item {
@@ -27,16 +28,29 @@ export interface Item {
   owner: Owner;
 }
 
-export interface Profile {
+/** Private details collected once, right after sign-up (the "Almost there!" step). */
+export interface PersonalInfo {
   fn: string; ln: string; country: string; phone: string;
   street: string; line2: string; city: string; area: string; state: string; zip: string;
   lat?: number | null; lng?: number | null;
 }
 
-export interface Me extends Profile {
+export interface Me extends PersonalInfo {
   id: number;
   email: string;
-  complete: boolean;
+  complete: boolean;       // false until the "Almost there" step has been saved
+  bio: string;
+  avatar: string | null;   // "/uploads/<file>" or null
+  createdAt: string;
+}
+
+export interface Review { score: number; comment: string; createdAt: string; reviewer: string; }
+
+/** What other members see about a user (GET /api/users/:id). */
+export interface PublicProfile extends Owner {
+  bio: string;
+  memberSince: string;
+  reviews: Review[];
 }
 
 export type ApiStatus = 'pending' | 'accepted' | 'declined' | 'returned';

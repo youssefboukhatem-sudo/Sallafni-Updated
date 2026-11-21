@@ -1,7 +1,7 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { Api, tokenStore } from './api';
 import { CITIES } from './data';
-import { Category, IncomingRequest, Item, Me, OutgoingRequest, Owner, Profile, RateTarget, Stats } from './models';
+import { Category, IncomingRequest, Item, Me, OutgoingRequest, Owner, PersonalInfo, RateTarget, Stats } from './models';
 
 export const norm = (s: unknown) =>
   String(s ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
@@ -22,6 +22,10 @@ export class Store {
 
   readonly user = signal<Me | null>(null);
   readonly loggedIn = computed(() => this.user() !== null);
+  readonly displayName = computed(() => {
+    const u = this.user();
+    return u ? `${u.fn} ${u.ln}`.trim() || u.email.split('@')[0] : '';
+  });
 
   readonly items = signal<Item[]>([]);
   readonly mine = signal<Item[]>([]);
@@ -39,12 +43,26 @@ export class Store {
   // Borrow filters (the top-bar search box shares `query`)
   readonly query = signal('');
   readonly category = signal('');
-  readonly freeOnly = signal('');
+
+  // Price slider: floor = 0, cap = the most expensive item in the catalogue (so it always fits the data).
+  readonly priceFloor = 0;
+  readonly priceCeil = computed(() => Math.max(1, Math.ceil(Math.max(0, ...this.items().map((i) => i.p)))));
+  /** What the borrower picked. maxPrice = null means "no cap" (it follows the ceiling as items change). */
+  readonly minPrice = signal(0);
+  readonly maxPrice = signal<number | null>(null);
+  readonly priceTo = computed(() => Math.min(this.maxPrice() ?? this.priceCeil(), this.priceCeil()));
+  readonly priceFrom = computed(() => Math.min(this.minPrice(), this.priceTo()));
 
   readonly filtered = computed(() => {
-    const c = this.category(), f = this.freeOnly(), q = this.query().toLowerCase();
-    return this.items().filter((item) => (!c || item.c === c) && (!f || item.p === 0) && (!q || (item.n + item.d).toLowerCase().includes(q)));
+    const c = this.category(), q = this.query().toLowerCase();
+    const lo = this.priceFrom(), hi = this.priceTo();
+    return this.items().filter((item) => (!c || item.c === c) && item.p >= lo && item.p <= hi && (!q || (item.n + item.d).toLowerCase().includes(q)));
   });
+
+  resetPrice() {
+    this.minPrice.set(0);
+    this.maxPrice.set(null);
+  }
 
   // ---------- startup & auth ----------
   /** Called once before the app renders: restore the session and load the public catalogue. */
@@ -86,9 +104,34 @@ export class Store {
     this.stats.set({ listed: 0, lentOut: 0, earned: 0 });
   }
 
-  async saveProfile(p: Profile) {
-    this.user.set(await this.api.saveProfile(p));
+  /** The one-time "Personal information" step (PUT /api/auth/me). */
+  async savePersonalInfo(p: PersonalInfo) {
+    this.user.set(await this.api.savePersonalInfo(p));
     await this.loadItems(); // owner location may have changed
+  }
+
+  /**
+   * "Edit profile": name + bio, and optionally the picture.
+   * avatar: undefined = leave as is, null = remove it, Blob = upload it.
+   */
+  async saveProfile(data: { fn: string; ln: string; bio: string }, avatar?: Blob | null) {
+    this.user.set(await this.api.updateProfile(data));
+    if (avatar === null) {
+      this.user.set(await this.api.removeAvatar());
+    } else if (avatar) {
+      const fd = new FormData();
+      fd.set('avatar', avatar, 'avatar.jpg');
+      this.user.set(await this.api.setAvatar(fd));
+    }
+    // my name / picture are shown on items and requests, so refresh them
+    await Promise.all([this.loadItems(), this.loadMine(), this.loadOutgoing(), this.loadIncoming()]);
+  }
+
+  /** Permanently deletes the account on the server, then signs out locally. */
+  async deleteAccount(password: string) {
+    await this.api.deleteAccount(password);
+    this.logout();
+    await this.loadItems(); // their items are gone from the public catalogue
   }
 
   // ---------- loading ----------

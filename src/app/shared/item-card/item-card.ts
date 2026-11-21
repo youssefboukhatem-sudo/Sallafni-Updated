@@ -1,5 +1,6 @@
-import { Component, inject, input, signal } from '@angular/core';
+import { Component, computed, inject, input, signal } from '@angular/core';
 import { Item } from '../../core/models';
+import { ITEM_IMAGES } from '../../core/resources';
 import { Store, priceLabel } from '../../core/store';
 
 @Component({
@@ -7,8 +8,8 @@ import { Store, priceLabel } from '../../core/store';
   template: `
     <article class="item">
       <div class="thumb" [style.background]="item().col">
-        @if (item().img && !imgFailed()) {
-          <img [src]="item().img" [alt]="item().n" loading="lazy" (error)="imgFailed.set(true)" />
+        @if (imageSrc() && !imgFailed()) {
+          <img [src]="imageSrc()" [alt]="item().n" loading="lazy" (error)="imgFailed.set(true)" />
         } @else {
           <svg aria-hidden="true"><use [attr.href]="'#i-' + item().i" /></svg>
         }
@@ -26,11 +27,28 @@ import { Store, priceLabel } from '../../core/store';
       </div>
     </article>
   `,
-  styles: `:host { display: contents; }`,
+  styles: `
+  :host { display: contents; }
+  .thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+  }
+`,
 })
 export class ItemCard {
   readonly item = input.required<Item>();
   protected readonly store = inject(Store);
   protected readonly imgFailed = signal(false);
   protected readonly price = priceLabel;
+
+  /** The item's own image if it has one, otherwise the file from resources.ts. */
+ protected readonly imageSrc = computed(() => {
+  const item = this.item();
+  if (item.img) return item.img;
+  const name = item.n.toLowerCase();
+  const key = Object.keys(ITEM_IMAGES).find((k) => name.includes(k));
+  return key ? ITEM_IMAGES[key] : '';
+});
 }

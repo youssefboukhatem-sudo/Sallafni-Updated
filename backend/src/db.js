@@ -23,6 +23,8 @@ CREATE TABLE IF NOT EXISTS users (
   area          TEXT NOT NULL DEFAULT '',
   state         TEXT NOT NULL DEFAULT '',
   zip           TEXT NOT NULL DEFAULT '',
+  bio           TEXT NOT NULL DEFAULT '',   -- short public description (social profile)
+  avatar        TEXT,                       -- /uploads/<file> or NULL
   lat           REAL,
   lng           REAL,
   -- Rating aggregate (seed users start with a history; real ratings add to it)
@@ -71,5 +73,10 @@ CREATE TABLE IF NOT EXISTS ratings (
   UNIQUE (request_id, rater_id)
 );
 `);
+
+// Migration for databases created before bio/avatar existed (CREATE TABLE IF NOT EXISTS won't add columns).
+const userCols = db.prepare('PRAGMA table_info(users)').all().map((c) => c.name);
+if (!userCols.includes('bio')) db.exec("ALTER TABLE users ADD COLUMN bio TEXT NOT NULL DEFAULT ''");
+if (!userCols.includes('avatar')) db.exec('ALTER TABLE users ADD COLUMN avatar TEXT');
 
 module.exports = db;

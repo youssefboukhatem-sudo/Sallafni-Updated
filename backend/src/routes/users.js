@@ -9,7 +9,7 @@ router.get('/:id(\\d+)', (req, res) => {
   const reviews = db.prepare(`SELECT r.score, r.comment, r.created_at createdAt, a.first_name reviewer
                               FROM ratings r JOIN users a ON a.id = r.rater_id
                               WHERE r.ratee_id = ? ORDER BY r.id DESC LIMIT 20`).all(u.id);
-  res.json({ ...S.publicUser(u), reviews });
+  res.json({ ...S.publicUser(u), bio: u.bio, memberSince: u.created_at, reviews });
 });
 
 module.exports = router;

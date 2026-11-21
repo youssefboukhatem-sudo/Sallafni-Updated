@@ -1,7 +1,7 @@
 import { HttpClient, HttpInterceptorFn } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
-import { IncomingRequest, Item, Me, OutgoingRequest, Owner, Profile, Stats } from './models';
+import { IncomingRequest, Item, Me, OutgoingRequest, Owner, PersonalInfo, PublicProfile, Stats } from './models';
 
 const TOKEN_KEY = 'sallafni.token';
 export const tokenStore = {
@@ -25,7 +25,12 @@ export class Api {
   register = (email: string, password: string) => firstValueFrom(this.http.post<{ token: string; user: Me }>(`${this.b}/auth/register`, { email, password }));
   login = (email: string, password: string) => firstValueFrom(this.http.post<{ token: string; user: Me }>(`${this.b}/auth/login`, { email, password }));
   me = () => firstValueFrom(this.http.get<Me>(`${this.b}/auth/me`));
-  saveProfile = (p: Profile) => firstValueFrom(this.http.put<Me>(`${this.b}/auth/me`, p));
+  savePersonalInfo = (p: PersonalInfo) => firstValueFrom(this.http.put<Me>(`${this.b}/auth/me`, p));
+  updateProfile = (p: { fn: string; ln: string; bio: string }) => firstValueFrom(this.http.patch<Me>(`${this.b}/auth/me/profile`, p));
+  setAvatar = (fd: FormData) => firstValueFrom(this.http.put<Me>(`${this.b}/auth/me/avatar`, fd));
+  removeAvatar = () => firstValueFrom(this.http.delete<Me>(`${this.b}/auth/me/avatar`));
+  deleteAccount = (password: string) => firstValueFrom(this.http.delete<void>(`${this.b}/auth/me`, { body: { password } }));
+  publicProfile = (id: number) => firstValueFrom(this.http.get<PublicProfile>(`${this.b}/users/${id}`));
 
   items = () => firstValueFrom(this.http.get<Item[]>(`${this.b}/items`));
   myItems = () => firstValueFrom(this.http.get<Item[]>(`${this.b}/items/mine`));

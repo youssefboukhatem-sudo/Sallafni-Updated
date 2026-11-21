@@ -121,3 +121,89 @@ test('lender dashboard: incoming, decline, stats', async () => {
   const stats = (await call('GET', '/requests/stats', { token: demo })).json;
   assert.ok(stats.listed >= 3 && typeof stats.earned === 'number');
 });
+
+/* ---------- social profile, avatar, account deletion ---------- */
+const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
+const fdAvatar = (type = 'image/png', bytes = PNG) => { const f = new FormData(); f.set('avatar', new Blob([bytes], { type }), 'a.png'); return f; };
+const raw = (method, url, token, body) => fetch(base + url, { method, headers: { Authorization: `Bearer ${token}` }, body });
+const completeUser = async (email) => {
+  const token = (await call('POST', '/auth/register', { body: { email, password: 'longenough' } })).json.token;
+  await call('PUT', '/auth/me', { token, body: { fn: 'Pat', ln: 'Lee', phone: '+216 1', street: '1 Rue X', city: 'Tunis' } });
+  return token;
+};
+
+test('profile: edit name + bio (validated); personal info and bio stay separate', async () => {
+  const token = await completeUser('prof@user.tn');
+  assert.equal((await call('PATCH', '/auth/me/profile', { token, body: { fn: '', ln: 'Lee', bio: '' } })).status, 400);
+  assert.equal((await call('PATCH', '/auth/me/profile', { token, body: { fn: 'Pat', ln: 'Lee', bio: 'x'.repeat(201) } })).status, 400);
+  const ok = await call('PATCH', '/auth/me/profile', { token, body: { fn: 'Patricia', ln: 'Lee-Smith', bio: 'I lend tools.' } });
+  assert.equal(ok.status, 200);
+  assert.equal(ok.json.fn, 'Patricia');
+  assert.equal(ok.json.bio, 'I lend tools.');
+  assert.equal(ok.json.street, '1 Rue X', 'address untouched');
+  assert.equal((await call('PATCH', '/auth/me/profile', { body: { fn: 'A', ln: 'B' } })).status, 401);
+  // re-saving personal info must not wipe the bio
+  await call('PUT', '/auth/me', { token, body: { fn: 'Patricia', ln: 'Lee-Smith', phone: '+216 1', street: '1 Rue X', city: 'Tunis' } });
+  assert.equal((await call('GET', '/auth/me', { token })).json.bio, 'I lend tools.');
+  // public profile exposes bio/avatar/memberSince but never private data
+  const pub = (await call('GET', '/users/' + ok.json.id)).json;
+  assert.equal(pub.bio, 'I lend tools.');
+  assert.ok(pub.memberSince && !('email' in pub) && !('phone' in pub) && !('street' in pub));
+});
+
+test('avatar: upload, replace, reject non-images, remove; owner avatar shows on items', async () => {
+  const token = await completeUser('avatar@user.tn');
+  assert.equal((await raw('PUT', '/auth/me/avatar', token, fdAvatar('text/plain', Buffer.from('hi')))).status, 400);
+  assert.equal((await raw('PUT', '/auth/me/avatar', token, new FormData())).status, 400);
+  const first = await (await raw('PUT', '/auth/me/avatar', token, fdAvatar())).json();
+  assert.match(first.avatar, /^\/uploads\/[0-9a-f]+\.png$/);
+  assert.equal((await fetch(`http://localhost:${server.address().port}${first.avatar}`)).status, 200);
+  const second = await (await raw('PUT', '/auth/me/avatar', token, fdAvatar())).json();
+  assert.notEqual(second.avatar, first.avatar);
+  assert.equal((await fetch(`http://localhost:${server.address().port}${first.avatar}`)).status, 404, 'old file removed');
+  const good = new FormData(); good.set('name', 'Avatar saw'); good.set('category', 'Tools');
+  const item = await (await raw('POST', '/items', token, good)).json();
+  assert.equal(item.owner.avatar, second.avatar);
+  const gone = await call('DELETE', '/auth/me/avatar', { token });
+  assert.equal(gone.json.avatar, null);
+  assert.equal((await fetch(`http://localhost:${server.address().port}${second.avatar}`)).status, 404);
+});
+
+test('delete account: needs password, blocked during active loans, removes everything', async () => {
+  // demo has an accepted loan as borrower -> must finish it first
+  const demo = await login('demo@sallafni.tn');
+  assert.equal((await call('DELETE', '/auth/me', { token: demo, body: { password: 'password123' } })).status, 409);
+  assert.equal((await call('GET', '/auth/me', { token: demo })).status, 200, 'demo still exists');
+
+  const token = await completeUser('bye@user.tn');
+  const me = (await call('GET', '/auth/me', { token })).json;
+  await raw('PUT', '/auth/me/avatar', token, fdAvatar());
+  const mk = new FormData(); mk.set('name', 'Bye saw'); mk.set('category', 'Tools'); mk.set('photo', new Blob([PNG], { type: 'image/png' }), 'p.png');
+  const myItem = await (await raw('POST', '/items', token, mk)).json();
+
+  // borrow Zeb's free table, return it and rate Zeb 8 -> Zeb's totals change
+  const zeb = await login('zeb@sallafni.tn');
+  const table = (await call('GET', '/items')).json.find((i) => i.n === 'Folding table');
+  const before = (await call('GET', '/users/' + table.ownerId)).json;
+  const r = await call('POST', '/requests', { token, body: { itemId: table.id, from: day(1), to: day(2) } });
+  await call('POST', `/requests/${r.json.id}/accept`, { token: zeb });
+  // active loan blocks deletion for the borrower too
+  assert.equal((await call('DELETE', '/auth/me', { token, body: { password: 'longenough' } })).status, 409);
+  await call('POST', `/requests/${r.json.id}/return`, { token });
+  await call('POST', `/requests/${r.json.id}/rate`, { token, body: { score: 8, comment: 'ok' } });
+  assert.equal((await call('GET', '/users/' + table.ownerId)).json.n, before.n + 1);
+
+  assert.equal((await call('DELETE', '/auth/me', { token, body: { password: 'wrong-pass' } })).status, 403);
+  assert.equal((await call('DELETE', '/auth/me', { token })).status, 403, 'password required');
+  assert.equal((await call('DELETE', '/auth/me', { token, body: { password: 'longenough' } })).status, 204);
+
+  assert.equal((await call('GET', '/auth/me', { token })).status, 401, 'token no longer valid');
+  assert.equal((await call('POST', '/auth/login', { body: { email: 'bye@user.tn', password: 'longenough' } })).status, 401);
+  assert.equal((await call('GET', '/items/' + myItem.id)).status, 404, 'items removed');
+  assert.equal((await call('GET', '/users/' + me.id)).status, 404);
+  const after = (await call('GET', '/users/' + table.ownerId)).json;
+  assert.equal(after.n, before.n, 'rating count restored');
+  assert.equal(after.score, before.score, 'score restored');
+  assert.equal(after.reviews.length, before.reviews.length, 'review removed with the account');
+  assert.equal((await fetch(`http://localhost:${server.address().port}${myItem.img}`)).status, 404, 'item photo file removed');
+});

@@ -14,7 +14,10 @@ A neighbourhood lending platform: lend what you don't use, borrow what you need 
 
 ## Features
 
-- **Accounts:** register / log in, profile (name, phone, address, optional GPS location)
+- **Accounts:** register / log in / log out / delete account
+- **"Almost there!" page:** the fill-in-your-information form, shown **once** right after sign-up (name, phone, address, optional GPS location)
+- **Profile:** social-style page with profile picture, name, short bio, public info, shared items and reviews, plus **Edit profile**;
+  other members' public profiles are at `/u/:id`
 - **Borrow:** browse items, filter by category / free-only / search; request with pick-up & return dates;
   distance to the lender; the exact street address is revealed **only after the lender accepts**
 - **Lend:** add items (with photo upload), see incoming requests, accept / decline, mark loans returned, dashboard stats
@@ -72,7 +75,12 @@ npm --prefix backend start     # API now also serves the built app at http://loc
 |---|---|
 | `POST /auth/register` `{email,password}` | Create account → `{token,user}` |
 | `POST /auth/login` `{email,password}` | Log in → `{token,user}` |
-| 🔒 `GET /auth/me` · `PUT /auth/me` | Read / update own profile |
+| 🔒 `GET /auth/me` | Read own account (`complete` = personal information done) |
+| 🔒 `PUT /auth/me` | Save the "Almost there!" information (name, phone, address, GPS) |
+| 🔒 `PATCH /auth/me/profile` `{fn,ln,bio}` | Edit profile: name + description (≤ 200 chars) |
+| 🔒 `PUT /auth/me/avatar` (multipart: `avatar`) | Set profile picture (JPG/PNG/WebP/GIF ≤ 2 MB) |
+| 🔒 `DELETE /auth/me/avatar` | Remove profile picture |
+| 🔒 `DELETE /auth/me` `{password}` | Delete account + items + requests + reviews (blocked while a loan is active) |
 | `GET /items?category=&free=1&q=` | List items (public; owner shown as name, city, area, score only) |
 | `GET /items/:id` | One item |
 | 🔒 `GET /items/mine` | My items |
@@ -85,14 +93,14 @@ npm --prefix backend start     # API now also serves the built app at http://loc
 | 🔒 `POST /requests/:id/accept` · `/decline` | Lender answers a pending request |
 | 🔒 `POST /requests/:id/return` | Lender or borrower marks an accepted loan returned |
 | 🔒 `POST /requests/:id/rate` `{score:1-10, comment?}` | Rate the other party (once, after return) |
-| `GET /users/:id` | Public profile + reviews |
+| `GET /users/:id` | Public profile (name, area, city, picture, bio, member since, score) + reviews |
 | `GET /health` | Health check |
 
 ## Database schema (SQLite)
 
 ```
 users     id, email (unique), password_hash, first_name, last_name, country, phone, street, line2,
-          city, area, state, zip, lat, lng, rating_sum, rating_count, created_at
+          city, area, state, zip, bio, avatar, lat, lng, rating_sum, rating_count, created_at
 items     id, owner_id → users, name, description, category, price, condition, image, created_at
 requests  id, item_id → items, borrower_id → users, date_from, date_to, note,
           status (pending | accepted | declined | returned), total_price, returned_at, created_at
@@ -108,11 +116,12 @@ backend/
   src/db.js            schema (created automatically)
   src/seed.js          demo data
   src/auth.js          JWT middleware        src/serialize.js   what each endpoint exposes
+  src/upload.js        shared image upload (items + avatars)
   src/routes/          auth · items · requests · users
   test/api.test.js     integration tests
 src/app/
   core/                api.ts (HTTP + JWT interceptor) · store.ts (state, signals) · auth.guard.ts · models · format
-  pages/               home · login (login + register) · profile · choose · borrower · lender
+  pages/               home · login (login + register) · almost-there (once, after sign-up) · profile (own + /u/:id) · choose · borrower · lender
   shared/              item-card · request-dialog · rate-dialog
 proxy.conf.json        dev proxy  /api, /uploads → :3000
 ```
@@ -123,3 +132,4 @@ proxy.conf.json        dev proxy  /api, /uploads → :3000
 - **Port already in use** → set `PORT=3001` in `backend/.env` **and** change the target in `proxy.conf.json`.
 - **`better-sqlite3` install error** → make sure you're on Node 20+; delete `backend/node_modules` and run `npm run setup` again.
 - **Start fresh** → `npm --prefix backend run reset`.
+- **Existing database** → the new `bio` and `avatar` columns are added automatically on the next backend start; no data is lost.

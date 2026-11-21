@@ -21,9 +21,12 @@
   <nav aria-label="Main">
     <a routerLink="/borrower" routerLinkActive ariaCurrentWhenActive="page">Borrow</a>
     <a routerLink="/lender" routerLinkActive ariaCurrentWhenActive="page">Lend</a>
-    <a routerLink="/profile" routerLinkActive ariaCurrentWhenActive="page">Profile</a>
-    @if (store.loggedIn()) {
-      <button type="button" class="link" (click)="logout()">Log out</button>
+    @if (store.user(); as u) {
+      <a routerLink="/profile" routerLinkActive ariaCurrentWhenActive="page">
+        @if (u.avatar) { <img class="nav-avatar" [src]="u.avatar" alt="" /> } @else { <span class="nav-initial" aria-hidden="true">{{ store.displayName()[0].toUpperCase() }}</span> }
+        Profile
+      </a>
+      <button type="button" class="navbtn" (click)="logout()">Log out</button>
     } @else {
       <a routerLink="/login" class="iconbtn" aria-label="Log in" routerLinkActive ariaCurrentWhenActive="page"><svg class="ico" aria-hidden="true"><use href="#i-user"/></svg></a>
     }

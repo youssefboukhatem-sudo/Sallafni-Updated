@@ -1,64 +1,169 @@
-<section class="view active">
-  <div class="auth card wide">
-    <h1>Almost there!</h1>
-    <p class="muted">Your location tells neighbors where an item is and how far apart you are. Only your city and area are shown publicly; your street address is shared only after a request is accepted.</p>
-    <form (ngSubmit)="submit()" novalidate>
-      <div class="two-f">
-        <div class="field">
-          <label for="fn">First name</label>
-          <input id="fn" name="fn" autocomplete="given-name" [(ngModel)]="model.fn" [attr.aria-invalid]="errors().fn ? true : null" />
-          @if (errors().fn) { <p class="error" role="alert">Enter your first name.</p> }
+@if (notFound()) {
+  <section class="view active">
+    <div class="auth card center">
+      <h1>Member not found</h1>
+      <p class="muted">This profile does not exist (anymore).</p>
+      <p><a class="btn btn-primary" routerLink="/borrower">Browse items</a></p>
+    </div>
+  </section>
+} @else if (own() ? store.user() : pub()) {
+  <section class="view active">
+    <article class="card profile-card">
+      <div class="cover" aria-hidden="true"></div>
+
+      <div class="profile-head">
+        <div class="avatar-lg">
+          @if (avatarSrc(); as src) {
+            <img [src]="src" [alt]="'Profile picture of ' + name()" />
+          } @else {
+            <span aria-hidden="true">{{ initial() }}</span>
+          }
         </div>
-        <div class="field">
-          <label for="ln">Last name</label>
-          <input id="ln" name="ln" autocomplete="family-name" [(ngModel)]="model.ln" [attr.aria-invalid]="errors().ln ? true : null" />
-          @if (errors().ln) { <p class="error" role="alert">Enter your last name.</p> }
+        @if (own() && !editing()) {
+          <button type="button" class="btn btn-outline" (click)="startEdit()">Edit profile</button>
+        }
+      </div>
+
+      @if (!editing()) {
+        <div class="profile-body">
+          <h1>{{ name() }}</h1>
+          <p class="muted small">
+            @if (location()) { 📍 {{ location() }} · }Member since {{ since() }}
+          </p>
+          @if (bio()) {
+            <p class="bio">{{ bio() }}</p>
+          } @else if (own()) {
+            <p class="bio muted">No description yet. Use “Edit profile” to tell neighbors about yourself.</p>
+          }
+          <ul class="stats" aria-label="Profile statistics">
+            <li><strong>{{ items().length }}</strong><span>Items shared</span></li>
+            <li>
+              <strong>{{ pub()?.score != null ? '★ ' + pub()!.score!.toFixed(1) : '—' }}</strong>
+              <span>{{ pub()?.n ? pub()!.n + ' ratings' : 'No ratings yet' }}</span>
+            </li>
+          </ul>
+        </div>
+      } @else {
+        <form class="profile-body" (ngSubmit)="save()" novalidate>
+          <h1>Edit profile</h1>
+
+          <div class="field">
+            <label for="avatarFile">Profile picture</label>
+            <div class="row">
+              <label class="btn btn-small" for="avatarFile">Upload photo</label>
+              <input id="avatarFile" class="sr" type="file" accept="image/jpeg,image/png,image/webp,image/gif" (change)="onAvatar($event)" />
+              @if (avatarSrc()) {
+                <button type="button" class="btn btn-small btn-outline" (click)="removeAvatar()">Remove</button>
+              }
+            </div>
+            @if (avatarError()) { <p class="error" role="alert">{{ avatarError() }}</p> }
+          </div>
+
+          <div class="two-f">
+            <div class="field">
+              <label for="pf-fn">First name</label>
+              <input id="pf-fn" name="fn" autocomplete="given-name" maxlength="50" [(ngModel)]="form.fn" [attr.aria-invalid]="errors().fn ? true : null" />
+              @if (errors().fn) { <p class="error" role="alert">Enter your first name.</p> }
+            </div>
+            <div class="field">
+              <label for="pf-ln">Last name</label>
+              <input id="pf-ln" name="ln" autocomplete="family-name" maxlength="50" [(ngModel)]="form.ln" [attr.aria-invalid]="errors().ln ? true : null" />
+              @if (errors().ln) { <p class="error" role="alert">Enter your last name.</p> }
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="pf-bio">About you</label>
+            <textarea id="pf-bio" name="bio" rows="4" [attr.maxlength]="bioMax" placeholder="A few words about you and what you like to lend or borrow…" [(ngModel)]="form.bio" [attr.aria-invalid]="errors().bio ? true : null"></textarea>
+            <p class="muted small right">{{ form.bio.length }}/{{ bioMax }}</p>
+            @if (errors().bio) { <p class="error" role="alert">Keep your description under {{ bioMax }} characters.</p> }
+          </div>
+
+          @if (serverError()) { <p class="error" role="alert">{{ serverError() }}</p> }
+          <div class="row end">
+            <button type="button" class="btn btn-outline" (click)="cancelEdit()">Cancel</button>
+            <button type="submit" class="btn btn-primary" [disabled]="saving()">{{ saving() ? 'Saving…' : 'Save changes' }}</button>
+          </div>
+        </form>
+      }
+    </article>
+
+    @if (own()) {
+      <div class="card profile-section">
+        <h2>Public information</h2>
+        <p class="muted small">This is what other members can see about you.</p>
+        <dl class="facts">
+          <div><dt>Name shown</dt><dd>{{ store.user()!.fn }} <span class="muted small">(first name only)</span></dd></div>
+          <div><dt>Location</dt><dd>{{ location() || '—' }}</dd></div>
+          <div><dt>Member since</dt><dd>{{ since() }}</dd></div>
+          <div><dt>Rating</dt><dd>{{ pub()?.score != null ? '★ ' + pub()!.score!.toFixed(1) + '/10' : 'No ratings yet' }}</dd></div>
+        </dl>
+        <p class="muted small">Your email, phone number and street address are never shown. Your street address is shared only after you accept a request.</p>
+      </div>
+    }
+
+    <div class="profile-section">
+      <h2>{{ own() ? 'Items I share' : 'Items shared by ' + name() }}</h2>
+      @if (items().length) {
+        <div class="grid-items small-grid">
+          @for (it of items(); track it.id) { <app-item-card [item]="it" /> }
+        </div>
+      } @else {
+        <p class="muted">Nothing shared yet.</p>
+      }
+      @if (own()) { <p><a class="link" routerLink="/lender">Manage my items</a></p> }
+    </div>
+
+    <div class="profile-section">
+      <h2>Reviews</h2>
+      @if (pub()?.reviews?.length) {
+        <ul class="list">
+          @for (r of pub()!.reviews; track $index) {
+            <li>
+              <div>
+                <strong>{{ r.reviewer }}</strong> <span class="score">★ {{ r.score }}/10</span>
+                @if (r.comment) { <br /><span class="muted small">“{{ r.comment }}”</span> }
+              </div>
+              <span class="muted small">{{ fmtShort(r.createdAt) }}</span>
+            </li>
+          }
+        </ul>
+      } @else {
+        <p class="muted">No reviews yet.</p>
+      }
+    </div>
+
+    @if (own()) {
+      <div class="card profile-section">
+        <h2>Account</h2>
+        <p class="muted small">Signed in as {{ store.user()!.email }}</p>
+        <div class="row">
+          <button type="button" class="btn btn-outline" (click)="logout()">Log out</button>
+        </div>
+        <div class="danger-zone">
+          <h3>Delete account</h3>
+          <p class="muted small">Permanently removes your account, your items and your personal information. This cannot be undone.</p>
+          <button type="button" class="btn btn-danger" (click)="openDelete()">Delete my account</button>
         </div>
       </div>
-      <div class="field">
-        <label for="country">Country</label>
-        <select id="country" name="country" autocomplete="country-name" [(ngModel)]="model.country">
-          @for (c of countries; track c) { <option [value]="c">{{ c }}</option> }
-        </select>
-      </div>
-      <div class="field">
-        <label for="phone">Mobile phone</label>
-        <input id="phone" name="phone" type="tel" autocomplete="tel" placeholder="+216 …" [(ngModel)]="model.phone" [attr.aria-invalid]="errors().phone ? true : null" />
-        @if (errors().phone) { <p class="error" role="alert">Enter your mobile number.</p> }
-      </div>
-      <div class="field">
-        <label for="street">Street address</label>
-        <input id="street" name="street" autocomplete="address-line1" [(ngModel)]="model.street" [attr.aria-invalid]="errors().street ? true : null" />
-        @if (errors().street) { <p class="error" role="alert">Enter your street address.</p> }
-      </div>
-      <div class="field">
-        <label for="line2">Address line 2 (optional)</label>
-        <input id="line2" name="line2" autocomplete="address-line2" [(ngModel)]="model.line2" />
-      </div>
-      <div class="field">
-        <label for="area">Area / neighborhood</label>
-        <input id="area" name="area" placeholder="e.g. Lac 2" [(ngModel)]="model.area" />
-      </div>
-      <div class="three-f">
+    }
+  </section>
+
+  @if (own()) {
+    <dialog #dlg aria-labelledby="delTitle">
+      <form (submit)="confirmDelete($event)" novalidate>
+        <h2 id="delTitle">Delete your account?</h2>
+        <p class="muted small">This permanently deletes your account, your items and your personal information. Enter your password to confirm.</p>
         <div class="field">
-          <label for="city">City</label>
-          <input id="city" name="city" list="cityList" autocomplete="address-level2" [(ngModel)]="model.city" [attr.aria-invalid]="errors().city ? true : null" />
-          <datalist id="cityList">@for (c of cityNames; track c) { <option [value]="c"></option> }</datalist>
-          @if (errors().city) { <p class="error" role="alert">Enter your city.</p> }
+          <label for="delPw">Password</label>
+          <input id="delPw" type="password" autocomplete="current-password" [value]="deletePassword()" (input)="deletePassword.set($any($event.target).value)" [attr.aria-invalid]="deleteError() ? true : null" />
+          @if (deleteError()) { <p class="error" role="alert">{{ deleteError() }}</p> }
         </div>
-        <div class="field">
-          <label for="state">Governorate / State</label>
-          <input id="state" name="state" autocomplete="address-level1" [(ngModel)]="model.state" />
+        <div class="row end">
+          <button type="button" class="btn btn-small btn-outline" (click)="closeDelete()">Cancel</button>
+          <button type="submit" class="btn btn-danger" [disabled]="deleting()">{{ deleting() ? 'Deleting…' : 'Delete permanently' }}</button>
         </div>
-        <div class="field">
-          <label for="zip">ZIP code</label>
-          <input id="zip" name="zip" inputmode="numeric" autocomplete="postal-code" [(ngModel)]="model.zip" />
-        </div>
-      </div>
-      <button type="button" class="btn btn-outline block" (click)="locate()">Use my current location (optional)</button>
-      <p class="muted small" id="geoStatus" aria-live="polite">{{ geoStatus() }}</p>
-      @if (serverError()) { <p class="error" role="alert">{{ serverError() }}</p> }
-      <button class="btn btn-primary block" type="submit" [disabled]="busy()">{{ busy() ? 'Saving…' : 'Next' }}</button>
-    </form>
-  </div>
-</section>
+      </form>
+    </dialog>
+  }
+}

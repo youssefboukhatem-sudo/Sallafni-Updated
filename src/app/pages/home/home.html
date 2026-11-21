@@ -18,7 +18,7 @@
     <p class="center"><a class="link" routerLink="/borrower">More</a></p>
   </div>
 
-  <div class="panel">
+   <div class="panel">
     <h2 class="center">How does Sallafni work?</h2>
     <div class="tabs" role="tablist">
       <button type="button" role="tab" [attr.aria-selected]="tab() === 'borrow'" aria-controls="steps" (click)="tab.set('borrow')">Borrow</button>
@@ -27,7 +27,9 @@
     <div class="grid-4" id="steps" role="tabpanel">
       @for (s of steps(); track s[0]; let i = $index) {
         <div [class]="'step s' + i">
-          <div class="art" aria-hidden="true"></div>
+          <div class="art">
+            <img [src]="'/images/steps/' + tab() + '-' + (i + 1) + '.png'" [alt]="s[0]" loading="lazy" />
+          </div>
           <h3>{{ s[0] }}</h3>
           <p class="muted small">{{ s[1] }}</p>
         </div>

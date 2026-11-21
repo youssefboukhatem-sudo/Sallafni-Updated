@@ -11,6 +11,7 @@ const publicUser = (u) => ({
   name: u.first_name || u.email.split('@')[0],
   city: u.city,
   area: u.area,
+  avatar: u.avatar ?? null,
   lat: u.lat,
   lng: u.lng,
   score: score(u),
@@ -24,6 +25,7 @@ const me = (u) => ({
   fn: u.first_name, ln: u.last_name, country: u.country, phone: u.phone,
   street: u.street, line2: u.line2, city: u.city, area: u.area, state: u.state, zip: u.zip,
   lat: u.lat, lng: u.lng,
+  bio: u.bio, avatar: u.avatar ?? null, createdAt: u.created_at,
   complete: Boolean(u.first_name && u.last_name && u.phone && u.street && u.city),
 });
 
@@ -40,7 +42,7 @@ const item = (r) => ({
   ownerId: r.owner_id,
   owner: publicUser({
     id: r.owner_id, email: r.o_email, first_name: r.o_first_name, city: r.o_city, area: r.o_area,
-    lat: r.o_lat, lng: r.o_lng, rating_sum: r.o_sum, rating_count: r.o_count,
+    lat: r.o_lat, lng: r.o_lng, avatar: r.o_avatar, rating_sum: r.o_sum, rating_count: r.o_count,
   }),
 });
 
